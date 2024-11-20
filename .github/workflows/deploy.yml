@@ -39,6 +39,17 @@ jobs:
         sudo tailscale up --auth-key=tskey-auth-ksaETTy8Bu11CNTRL-11F2jToXexdaUmCB78zBxdshyRjWPgQL --hostname=webvm-deployer  # Hardcoded auth key
         sudo tailscale status  # Check if Tailscale is connected successfully
 
+    - name: Tailscale Action (OAuth Integration)
+      uses: tailscale/actions@v1  # Assuming this is the official Tailscale GitHub Action
+      with:
+        oauth-client-id: k6k73eWFD821CNTRL  # Hardcoded client ID
+        oauth-secret: tskey-client-k6k73eWFD821CNTRL-GY5Wr8XCK95dpMDVYGE4A57oDE4VBzAWd  # Hardcoded client secret
+        tags: tag:ci
+
+    - name: check for hello.ts.net in netmap
+      run: |
+        tailscale status | grep -q hello  # Check the status
+
     - name: Deploy FastAPI application
       run: |
         # Replace with your deployment commands for FastAPI (e.g., Git pull, migration, etc.)
