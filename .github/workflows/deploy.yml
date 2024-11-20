@@ -1,4 +1,4 @@
-name: Deploy to WebVM
+name: Deploy FastAPI to WebVM
 
 on:
   push:
@@ -8,31 +8,30 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Install Tailscale
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y curl
-        curl -fsSL https://tailscale.com/install.sh | sh
-        sudo tailscaled &
-        sudo tailscale up --auth-key=tskey-auth-kgS2dM8Fy511CNTRL-KSXRVhvzAp8A46Grihhho83zoyi15RZe --hostname=webvm-deployer
+      - name: Install Tailscale
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg > /dev/null
+          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+          sudo apt-get update
+          sudo apt-get install -y tailscale
+          sudo tailscaled &
 
-    - name: Build Docker image
-      run: |
-        docker build -t fastapi-app:latest .
-        docker save fastapi-app:latest > fastapi-app.tar
+      - name: Authenticate to WebVM using Tailscale
+        run: |
+          sudo tailscale up --auth-key=tskey-auth-k5xjDNtCC811CNTRL-MDsnoUwVARCpbwF8T9KDSC9gE1GX9wN4 --hostname=webvm-deployer
 
-    - name: Deploy to WebVM
-      run: |
-        scp fastapi-app.tar user@100.111.221.90:~/fastapi-app.tar
-        ssh user@100.111.221.90 << 'EOF'
-          docker load < ~/fastapi-app.tar
-          docker run -d -p 8000:8000 fastapi-app:latest
-        EOF
+      - name: Build Docker image
+        run: docker build -t fastapi-app:latest .
+
+      - name: Deploy to WebVM
+        run: |
+          docker save fastapi-app:latest | ssh user@100.111.221.90 "docker load && docker run -d -p 80:80 fastapi-app:latest"
