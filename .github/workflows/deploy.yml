@@ -1,13 +1,14 @@
-name: Deploy FastAPI Project
+name: Deploy to WebVM with Tailscale
 
 on:
   push:
     branches:
-      - main
+      - main  # Trigger on pushing to the main branch
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
 
     steps:
     - name: Checkout code
@@ -16,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.10
+        python-version: '3.x'
 
     - name: Install dependencies
       run: |
@@ -25,20 +26,31 @@ jobs:
 
     - name: Install Tailscale
       run: |
-        curl -fsSL https://tailscale.com/install.sh | sh
-        sudo tailscale up --auth-key=tskey-auth-krSzPHxoGe11CNTRL-t2e8ymCEULWRcREYv4nWMWYdnHVLGzMyf --hostname=webvm-deployer
+        curl -fsSL https://tailscale.com/install.sh | sh  # Install Tailscale
+        sudo apt-get install tailscale  # Ensure it's installed
 
-    - name: Start FastAPI app
+    - name: Start Tailscale daemon
       run: |
-        nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
+        sudo tailscaled &
+        sleep 5  # Wait for the Tailscale daemon to start
 
-    - name: Test if FastAPI is running
+    - name: Authenticate with Tailscale
       run: |
-        curl http://localhost:8000
+        sudo tailscale up --auth-key=${{ secrets.TSAUTHKEY }} --hostname=webvm-deployer  # Use the provided auth key
+        sudo tailscale status  # Check if Tailscale is connected successfully
 
-    - name: Cleanup Tailscale
+    - name: Deploy FastAPI application
       run: |
-        sudo tailscale down
+        # Replace with your deployment commands for FastAPI (e.g., Git pull, migration, etc.)
+        echo "Deploying FastAPI app..."
+        # Example: python app.py or docker commands, depending on your setup
 
-    - name: Deploy completed
-      run: echo "Deployment finished successfully!"
+    - name: Post-deploy status check
+      run: |
+        echo "Post deployment checks"
+        sudo tailscale status  # Verify Tailscale status post-deployment
+
+    - name: Cleanup
+      run: |
+        sudo pkill tailscaled  # Stop the Tailscale daemon if no longer needed
+
