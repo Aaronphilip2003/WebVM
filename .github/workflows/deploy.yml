@@ -36,7 +36,7 @@ jobs:
 
     - name: Authenticate with Tailscale
       run: |
-        sudo tailscale up --auth-key=${{ secrets.TSAUTHKEY }} --hostname=webvm-deployer  # Use the provided auth key
+        sudo tailscale up --auth-key=tskey-auth-ksaETTy8Bu11CNTRL-11F2jToXexdaUmCB78zBxdshyRjWPgQL --hostname=webvm-deployer  # Hardcoded auth key
         sudo tailscale status  # Check if Tailscale is connected successfully
 
     - name: Deploy FastAPI application
@@ -53,4 +53,3 @@ jobs:
     - name: Cleanup
       run: |
         sudo pkill tailscaled  # Stop the Tailscale daemon if no longer needed
-
