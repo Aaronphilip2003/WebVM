@@ -1,0 +1,36 @@
+name: Deploy to WebVM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker image
+      run: |
+        docker build -t fastapi-app:latest .
+        docker save fastapi-app:latest > fastapi-app.tar
+
+    - name: Deploy to WebVM
+      run: |
+        # Authenticate to WebVM using Tailscale
+        tailscale up --auth-key=tskey-auth-kgS2dM8Fy511CNTRL-KSXRVhvzAp8A46Grihhho83zoyi15RZe --hostname=webvm-deployer
+
+        # Copy Docker image tarball to WebVM
+        scp fastapi-app.tar user@100.111.221.90:~/fastapi-app.tar
+
+        # Load and run the Docker image on WebVM
+        ssh user@100.111.221.90 << 'EOF'
+          docker load < ~/fastapi-app.tar
+          docker run -d -p 8000:8000 fastapi-app:latest
+        EOF
