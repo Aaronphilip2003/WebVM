@@ -1,4 +1,4 @@
-name: Deploy FastAPI to WebVM
+name: Deploy FastAPI Project
 
 on:
   push:
@@ -8,30 +8,37 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
 
-      - name: Install Tailscale
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl
-          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg > /dev/null
-          curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/jammy.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
-          sudo apt-get update
-          sudo apt-get install -y tailscale
-          sudo tailscaled &
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Authenticate to WebVM using Tailscale
-        run: |
-          sudo tailscale up --auth-key=tskey-auth-k5P3giLBvD11CNTRL-ta8QoH2D7TTuUvqTMAkBUTKgBrusu6PT --hostname=webvm-deployer
+    - name: Install Tailscale
+      run: |
+        curl -fsSL https://tailscale.com/install.sh | sh
+        sudo tailscale up --auth-key=tskey-auth-krSzPHxoGe11CNTRL-t2e8ymCEULWRcREYv4nWMWYdnHVLGzMyf --hostname=webvm-deployer
 
-      - name: Build Docker image
-        run: docker build -t fastapi-app:latest .
+    - name: Start FastAPI app
+      run: |
+        nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
 
-      - name: Deploy to WebVM
-        run: |
-          docker save fastapi-app:latest | ssh user@100.111.221.90 "docker load && docker run -d -p 80:80 fastapi-app:latest"
+    - name: Test if FastAPI is running
+      run: |
+        curl http://localhost:8000
+
+    - name: Cleanup Tailscale
+      run: |
+        sudo tailscale down
+
+    - name: Deploy completed
+      run: echo "Deployment finished successfully!"
