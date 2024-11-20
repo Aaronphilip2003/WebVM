@@ -27,7 +27,7 @@ jobs:
 
       - name: Authenticate to WebVM using Tailscale
         run: |
-          sudo tailscale up --auth-key=tskey-auth-k5xjDNtCC811CNTRL-MDsnoUwVARCpbwF8T9KDSC9gE1GX9wN4 --hostname=webvm-deployer
+          sudo tailscale up --auth-key=tskey-auth-k5P3giLBvD11CNTRL-ta8QoH2D7TTuUvqTMAkBUTKgBrusu6PT --hostname=webvm-deployer
 
       - name: Build Docker image
         run: docker build -t fastapi-app:latest .
